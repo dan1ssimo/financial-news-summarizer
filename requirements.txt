@@ -1,0 +1,9 @@
+requests
+pandas
+lxml
+feedparser
+newspaper
+tqdm
+ruff
+black
+pre-commit
