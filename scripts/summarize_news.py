@@ -1,18 +1,21 @@
 import os
-from typing import Optional
+from typing import Iterator, Optional
 
 from huggingface_hub import hf_hub_download
 from llama_cpp import Llama
+from prompts import SYSTEM_PROMPT, USER_PROMPT
 
 
-class DeepSeekModel:
+class QwenModel:
     def __init__(
         self,
         model_name: Optional[str] = None,
         filename: Optional[str] = None,
         model_path: Optional[str] = None,
-        enable_thinking: bool = True,
+        enable_thinking: bool = False,
     ):
+        self.enable_thinking = enable_thinking
+
         if not os.path.exists(model_path):
             if model_name and filename:
                 model_path = hf_hub_download(model_name, filename=filename)
@@ -22,11 +25,10 @@ class DeepSeekModel:
                 )
 
         self.generation_kwargs = {
-            "max_tokens": 32768,  # Adequate output length for most queries
-            "stop": ["<|im_end|>", "<|endoftext|>"],  # Qwen3 stop tokens
-            "echo": False,
-            "temperature": 0.7,
-            "top_p": 0.9,
+            "max_tokens": 32768,
+            "stop": ["<|im_end|>", "<|endoftext|>"],
+            "temperature": 0.6,
+            "top_p": 0.90,
             "top_k": 20,
             "min_p": 0.0,
             "presence_penalty": 1.5,
@@ -34,36 +36,54 @@ class DeepSeekModel:
 
         self.llm = Llama(
             model_path=model_path,
-            n_ctx=16000,  # Context length to use
-            n_threads=32,  # Number of CPU threads to use
-            n_gpu_layers=0,  # Number of model layers to offload to GPU
+            n_ctx=16000,
+            n_threads=32,
+            n_gpu_layers=0,
+            no_perf=True,
+            verbose=False,
         )
 
-    def run(self, prompt: str) -> str:
-        return self.llm(prompt, **self.generation_kwargs)
+    def run(
+        self, system_prompt: str, user_prompt: str, stream: bool = False
+    ) -> Iterator[str]:
+        """
+        Run with system prompt using streaming
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt.format(
+                    think_mode="/think" if self.enable_thinking else "/no_think"
+                ),
+            },
+            {"role": "user", "content": user_prompt},
+        ]
+
+        result = self.llm.create_chat_completion(
+            messages=messages, **self.generation_kwargs, stream=stream
+        )
+        if stream:
+            for chunk in result:
+                if chunk["choices"][0]["finish_reason"] is not None:
+                    break
+                token = chunk["choices"][0]["delta"].get("content", "")
+                if token:
+                    yield token
+        else:
+            return result["choices"][0]["message"]["content"]
 
 
 if __name__ == "__main__":
-    # from local gguf model
-    # model_path = "/app/data/models/lmstudio-community/DeepSeek-R1-0528-Qwen3-8B-GGUF/DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf"
     model_path = "/app/data/models/Qwen/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q8_0.gguf"
-    summarizer = DeepSeekModel(model_path=model_path, enable_thinking=True)
+    llm = QwenModel(model_path=model_path, enable_thinking=False)
+    response = ""
+    print("Response: ", end="", flush=True)
 
-    # Qwen3 chat format
-    prompt = """<|im_start|>user
-Summarize the key facts from the following financial news article in 2-3 neutral sentences.
-Focus on the main event, numbers, and direct consequences.
-Do not include questions, opinions, or calls to action.
+    # with stream
+    for token in llm.run(SYSTEM_PROMPT, USER_PROMPT, stream=True):
+        response += token
+        print(token, end="", flush=True)
 
-Article:
-This is test article. The main event is that the company made 1000000 dollars. The direct consequence is that the company is now bankrupt.
-
-Please provide your response in the following JSON format with two fields:
-- "reasoning": Your step-by-step analysis and thinking process
-- "summary": The final 2-3 sentence summary.
-<|im_end|>
-<|im_start|>assistant
-"""
-
-    print("Generating summary...")
-    result = summarizer.run(prompt)
+    # without stream
+    # response = llm.run(SYSTEM_PROMPT, USER_PROMPT)
+    # print(response)
