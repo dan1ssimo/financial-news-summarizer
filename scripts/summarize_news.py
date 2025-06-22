@@ -1,9 +1,10 @@
 import os
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Union
 
 from huggingface_hub import hf_hub_download
 from llama_cpp import Llama
-from prompts import SYSTEM_PROMPT, USER_PROMPT
+
+from scripts.prompts import SYSTEM_PROMPT, USER_PROMPT
 
 
 class QwenModel:
@@ -44,7 +45,38 @@ class QwenModel:
         )
 
     def run(
-        self, system_prompt: str, user_prompt: str, stream: bool = False
+        self, system_prompt: str, user_prompt: str, article: str, stream: bool = False
+    ) -> Union[str, Iterator[str]]:
+        """
+        Run with system prompt using streaming
+        """
+        if stream:
+            return self.run_stream(system_prompt, user_prompt, article)
+        else:
+            return self.run_sync(system_prompt, user_prompt, article)
+
+    def run_sync(self, system_prompt: str, user_prompt: str, article: str) -> str:
+        """
+        Run with system prompt without streaming
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": system_prompt.format(
+                    think_mode="/think" if self.enable_thinking else "/no_think"
+                ),
+            },
+            {"role": "user", "content": user_prompt.format(article=article)},
+        ]
+
+        result = self.llm.create_chat_completion(
+            messages=messages, **self.generation_kwargs, stream=False
+        )
+
+        return result["choices"][0]["message"]["content"]
+
+    def run_stream(
+        self, system_prompt: str, user_prompt: str, article: str
     ) -> Iterator[str]:
         """
         Run with system prompt using streaming
@@ -56,34 +88,34 @@ class QwenModel:
                     think_mode="/think" if self.enable_thinking else "/no_think"
                 ),
             },
-            {"role": "user", "content": user_prompt},
+            {"role": "user", "content": user_prompt.format(article=article)},
         ]
 
         result = self.llm.create_chat_completion(
-            messages=messages, **self.generation_kwargs, stream=stream
+            messages=messages, **self.generation_kwargs, stream=True
         )
-        if stream:
-            for chunk in result:
-                if chunk["choices"][0]["finish_reason"] is not None:
-                    break
-                token = chunk["choices"][0]["delta"].get("content", "")
-                if token:
-                    yield token
-        else:
-            return result["choices"][0]["message"]["content"]
+
+        for chunk in result:
+            if chunk["choices"][0]["finish_reason"] is not None:
+                break
+            token = chunk["choices"][0]["delta"].get("content", "")
+            if token:
+                yield token
 
 
 if __name__ == "__main__":
-    model_path = "/app/data/models/Qwen/Qwen3-1.7B-GGUF/Qwen3-1.7B-Q8_0.gguf"
-    llm = QwenModel(model_path=model_path, enable_thinking=False)
+    model_path = "/app/data/models/Qwen3-1.7B-Q8_0.gguf"
+    llm = QwenModel(model_path=model_path, enable_thinking=True)
+    article = "This is test article. The main event is that the company made 1000000 dollars. The direct consequence is that the company is now bankrupt."
+
     response = ""
     print("Response: ", end="", flush=True)
 
     # with stream
-    for token in llm.run(SYSTEM_PROMPT, USER_PROMPT, stream=True):
-        response += token
-        print(token, end="", flush=True)
+    # for token in llm.run(SYSTEM_PROMPT, USER_PROMPT, article, stream=True):
+    #     response += token
+    #     print(token, end="", flush=True)
 
     # without stream
-    # response = llm.run(SYSTEM_PROMPT, USER_PROMPT)
-    # print(response)
+    response = llm.run(SYSTEM_PROMPT, USER_PROMPT, article, stream=False)
+    print(response)

@@ -11,12 +11,12 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     libopenblas-dev \
     git \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python 3.11 and pip
 RUN apt-get update && apt-get install -y \
     software-properties-common \
-    curl \
     python3.11 \
     python3.11-venv \
     python3.11-distutils \
@@ -28,16 +28,23 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --upgrade pip wheel setuptools \
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir --ignore-installed -r requirements.txt
 
 # Install llama-cpp-python with OpenBLAS support
 ENV CMAKE_ARGS="-DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS"
+ENV PYTHONPATH=/app
+
 RUN pip install llama-cpp-python \
     --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu \
-    --no-cache-dir
+    --no-cache-dir \
+    --ignore-installed
 
 # Copy the rest of the app
 COPY . .
 
-# Default command
+# Expose Streamlit port
+EXPOSE 8501
+
+# Default command to run Streamlit
+# CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
 CMD ["bash"]

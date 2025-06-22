@@ -10,3 +10,4 @@ pre-commit
 transformers
 torch
 gguf
+streamlit

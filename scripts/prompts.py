@@ -10,6 +10,5 @@ IMPORTANT: {think_mode}
 """
 
 USER_PROMPT = """Summarize the key facts from the following financial news article:
-
-Article:
-This is test article. The main event is that the company made 1000000 dollars. The direct consequence is that the company is now bankrupt."""
+{article}
+"""
