@@ -4,6 +4,11 @@
 A small Streamlit application for obtaining summaries of financial news.
 Under the hood, it uses llama-cpp-python with local GGUF models (Qwen by default), and when they are missing, a simple fallback algorithm is activated.
 
+## Web UI (Streamlit)
+![Financial News Summarizer Interface](docs/demo.png)
+
+*The application interface showing text input area, model selection, and summarization results*
+
 ## Main features
 - Input arbitrary article text and get a brief summary.
 - Connect any local LLM models in `.gguf` format without calling external APIs.
