@@ -1,28 +1,28 @@
-# 📰 Финансовый суммаризатор новостей
+# 📰 Financial News Summarizer
 
-## О проекте
-Небольшое Streamlit-приложение для получения summary финансовых новостей.
-Под капотом используется llama-cpp-python с локальными GGUF-моделями (по умолчанию Qwen), а при их отсутствии включается простой fallback-алгоритм.
+## About the project
+A small Streamlit application for obtaining summaries of financial news.
+Under the hood, it uses llama-cpp-python with local GGUF models (Qwen by default), and when they are missing, a simple fallback algorithm is activated.
 
-## Основные возможности
-- Ввод произвольного текста статьи и получение краткой выжимки.
-- Подключение любых локальных LLM-моделей в формате `.gguf` без обращения к внешним API.
-- Пошаговая потоковая генерация вывода (stream) для плавного отображения результата.
-- Готовые скрипты для: загрузки новостей Yahoo Finance, генерации датасетов и бенчмаркинга моделей.
-- Docker-образ с полным окружением (Ubuntu 22.04 + Python 3.11).
+## Main features
+- Input arbitrary article text and get a brief summary.
+- Connect any local LLM models in `.gguf` format without calling external APIs.
+- Step-by-step streaming generation output for smooth result display.
+- Ready scripts for: downloading Yahoo Finance news, generating datasets and benchmarking models.
+- Docker image with complete environment (Ubuntu 22.04 + Python 3.11).
 
-## Быстрый запуск
-### Docker Compose (рекомендуется)
+## Quick start
+### Docker Compose (recommended)
 ```bash
-mkdir -p data/models            # каталог для моделей
-# поместите *.gguf файлы внутрь data/models/
-docker-compose up -d            # сборка и запуск
+mkdir -p data/models            # directory for models
+# place *.gguf files inside data/models/
+docker-compose up -d            # build and run
 ```
-Приложение будет доступно на `http://localhost:8501`.
+The application will be available at `http://localhost:8501`.
 
-P.S: Инференс на streamlit занимает какое-то время даже со streaming (около 2-3 минут). Пока не успел это пофиксить. Если хочется быстрого результата заходим в контейнер и запускаем scripts/summarize_news.py
+P.S: Inference on streamlit takes some time even with streaming (about 2-3 minutes). Haven't had time to fix this yet. If you want quick results, go into the container and run scripts/summarize_news.py
 
-### Ручной запуск в Docker (пока CPU version only)
+### Manual Docker run (CPU version only for now)
 ```bash
 docker build -t news-summarizer .
 docker run -d -p 8501:8501 \
@@ -33,43 +33,43 @@ docker exec -ti <container_id> bash
 python3 scripts/summarize_news.py
 ```
 
-### Запуск без контейнера (позволяет использовать MLX на Apple Silicon)
+### Run without container (allows using MLX on Apple Silicon)
 ```bash
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## Структура репозитория
+## Repository structure
 ```text
 financial-news-summarizer/
-├── app.py                   # Web-интерфейс Streamlit
-├── prompts.py               # Системный и few-shot промпты
-├── scripts/                 # Утилиты CLI
-│   ├── load_news.py         # Загрузка RSS и парсинг статей
-│   ├── summarize_news.py    # Обёртка QwenModel (llama-cpp)
-│   ├── process_dataset.py   # Генерация датасета локальной моделью
-│   └── process_dataset_gpt.py # То же через OpenAI/OpenRouter
+├── app.py                   # Streamlit web interface
+├── prompts.py               # System and few-shot prompts
+├── scripts/                 # CLI utilities
+│   ├── load_news.py         # RSS loading and article parsing
+│   ├── summarize_news.py    # QwenModel wrapper (llama-cpp)
+│   ├── process_dataset.py   # Dataset generation with local model
+│   └── process_dataset_gpt.py # Same via OpenAI/OpenRouter
 ├── data/
-│   └── models/              # *.gguf модели (монтируется в конт)
-├── Dockerfile               # Cборка окружения
-├── docker-compose.yml       # Быстрый запуск
-├── requirements.txt         # Зависимости рантайма
+│   └── models/              # *.gguf models (mounted in container)
+├── Dockerfile               # Environment build
+├── docker-compose.yml       # Quick start
+├── requirements.txt         # Runtime dependencies
 └── README.md
 ```
 
-## Описание компонентов
-- **`app.py`** – форма ввода текста, выбор модели, потоковая генерация результата.
-- **`QwenModel`** (`scripts/summarize_news.py`) – класс-обёртка над llama-cpp с удобными методами `run`, `run_stream`, `count_tokens`.
-- **Скрипты** в `scripts/` автоматизируют сбор новостей и подготовку обучающих/валид-датасетов.
-- **`prompts.py`** хранит строгий system-prompt и few-shot примеры для финансового домена.
-- **Dockerfile** собирает минимальный образ; переменные окружения задают оптимизационные флаги для компиляции GGML.
+## Component description
+- **`app.py`** – text input form, model selection, streaming result generation.
+- **`QwenModel`** (`scripts/summarize_news.py`) – wrapper class over llama-cpp with convenient `run`, `run_stream`, `count_tokens` methods.
+- **Scripts** in `scripts/` automate news collection and preparation of training/validation datasets.
+- **`prompts.py`** stores strict system-prompt and few-shot examples for the financial domain.
+- **Dockerfile** builds minimal image; environment variables set optimization flags for GGML compilation.
 
-## Работа с моделями
-1. Поместите `.gguf` файл в `data/models/` (или смонтируйте через `docker-compose`).
-2. Приложение автоматически найдёт его и предложит в выпадающем списке.
-3. Параметры генерации (контекст 16k, temperature, top-p и т. д.) задаются в `scripts/summarize_news.py`.
+## Working with models
+1. Place `.gguf` file in `data/models/` (or mount via `docker-compose`).
+2. The application will automatically find it and offer it in the dropdown list.
+3. Generation parameters (16k context, temperature, top-p, etc.) are set in `scripts/summarize_news.py`.
 
-## Зависимости
-- Runtime: `requests`, `pandas`, `feedparser`, `newspaper4k`, `tqdm`, `streamlit`, `transformers`, `torch`, `llama-cpp-python` (устанавливается отдельно), `gguf`.
+## Dependencies
+- Runtime: `requests`, `pandas`, `feedparser`, `newspaper4k`, `tqdm`, `streamlit`, `transformers`, `torch`, `llama-cpp-python` (installed separately), `gguf`.
 - Dev: `black`, `ruff`, `pytest`, `pre-commit`.
