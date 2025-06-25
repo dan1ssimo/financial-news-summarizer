@@ -46,5 +46,5 @@ COPY . .
 EXPOSE 8501
 
 # Default command to run Streamlit
-# CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
-CMD ["bash"]
+CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# CMD ["/bin/bash"]

@@ -2,7 +2,7 @@ from pathlib import Path
 
 import streamlit as st
 
-from scripts.prompts import SYSTEM_PROMPT, USER_PROMPT
+from prompts import SYSTEM_PROMPT
 from scripts.summarize_news import QwenModel
 
 
@@ -17,27 +17,28 @@ def load_gguf_models():
     return [model.name for model in gguf_files]
 
 
-def summarize_text(text, model_name=None, llm=None):
+@st.cache_resource(show_spinner="🔄 Loading model…")
+def get_model(path: str):
+    return QwenModel(model_path=path, enable_thinking=True)
+
+
+def summarize_text(text: str, model_name: str, llm: QwenModel | None):
     """
     Stream summarize text using GGUF model or fallback to simple summarization
     """
-    if model_name and model_name != "Simple Fallback" and llm is not None:
-        try:
-            return llm.run(SYSTEM_PROMPT, USER_PROMPT, text, stream=False)
-        except Exception as e:
-            yield f"**Error with model {model_name}:**\n{str(e)}\n"
+    prompt = SYSTEM_PROMPT.format(think_mode="/no_think", few_shot_examples="")
+    if model_name != "Simple Fallback" and llm:
+        return llm.run(prompt, text, stream=True)
     else:
         # Simple fallback summarization
         words = text.split()
         if len(words) <= 50:
-            yield text
-        else:
-            sentences = text.split(". ")
-            summary_sentences = sentences[:3]
-            summary = ". ".join(summary_sentences) + (
-                "." if not summary_sentences[-1].endswith(".") else ""
-            )
-            yield f"**Simple Fallback Summary:**\n{summary}"
+            return text
+        sentences = text.split(". ")
+        summary = ". ".join(sentences[:3])
+        if not summary.endswith("."):
+            summary += "."
+        return f"**Simple Fallback Summary:**\n{summary}"
 
 
 def main():
@@ -71,11 +72,10 @@ def main():
         )
 
         if selected_model != "Simple Fallback":
-            llm = QwenModel(
-                model_path=f"/app/data/models/{selected_model}", enable_thinking=True
-            )
+            llm = get_model(f"/app/data/models/{selected_model}")
             st.success(f"✅ Model loaded: {selected_model}")
         else:
+            llm = None
             st.info("ℹ️ Using simple text processing")
 
         # Show available models
@@ -90,14 +90,17 @@ def main():
     if st.button("🚀 Summarize", type="primary", use_container_width=True):
         if article_text.strip():
             with st.spinner("Processing text..."):
-                st.markdown("### 📋 Model Results")
-                st.markdown("---")
-
-                # Создаем placeholder для стриминга
                 result_placeholder = st.empty()
 
-                full_response = summarize_text(article_text, selected_model, llm)
-                result_placeholder.markdown(full_response)
+                response = summarize_text(article_text, selected_model, llm)
+
+                if isinstance(response, str):
+                    result_placeholder.markdown(response)
+                else:
+                    collected = ""
+                    for tok in response:
+                        collected += tok
+                        result_placeholder.markdown(collected)
 
         else:
             st.error("⚠️ Please enter text for summarization!")
