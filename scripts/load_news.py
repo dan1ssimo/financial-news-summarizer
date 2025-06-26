@@ -70,8 +70,10 @@ def get_yahoo_news_rss(symbol: str, start: str = None, end: str = None) -> pd.Da
 
 
 if __name__ == "__main__":
-    if os.path.exists("data/yahoo_news_tsla.csv"):
-        start_date = pd.read_csv("data/yahoo_news_tsla.csv")["published"].max()
-        news = get_yahoo_news_rss("TSLA", start=start_date)
+    ticker = "TSLA"
+    dataset_path = f"data/yahoo_news_{ticker}.csv"
+    if os.path.exists(dataset_path):
+        start_date = pd.read_csv(dataset_path)["published"].max()
+        news = get_yahoo_news_rss(ticker, start=start_date)
     else:
-        news = get_yahoo_news_rss("TSLA")
+        news = get_yahoo_news_rss(ticker)

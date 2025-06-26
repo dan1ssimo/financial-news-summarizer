@@ -19,7 +19,7 @@ Under the hood, it uses llama-cpp-python with local GGUF models (for now only [Q
 ## Quick start
 ### Preparation
 ```
-git clone <repo_id>
+git clone https://github.com/dan1ssimo/financial-news-summarizer.git
 cd financial-news-summarizer
 mkdir -p data/models            # directory for models
 # place *.gguf files inside data/models/

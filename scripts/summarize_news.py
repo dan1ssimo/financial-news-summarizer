@@ -8,6 +8,10 @@ from prompts import FEW_SHOT_EXAMPLES, SYSTEM_PROMPT
 
 
 class QwenModel:
+    """
+    QwenModel class for local inference
+    """
+
     def __init__(
         self,
         model_name: Optional[str] = None,
@@ -16,6 +20,9 @@ class QwenModel:
         enable_thinking: bool = False,
         enable_few_shot_examples: bool = False,
     ):
+        """
+        Initialize QwenModel
+        """
         self.enable_thinking = enable_thinking
         self.enable_few_shot_examples = enable_few_shot_examples
 
@@ -110,14 +117,14 @@ class QwenModel:
 
     def count_tokens(self, text: str) -> int:
         """
-        Подсчитать количество токенов в тексте
+        Count tokens in text
         """
         tokens = self.llm.tokenize(text.encode("utf-8"))
         return len(tokens)
 
     def tokenize_text(self, text: str) -> list:
         """
-        Токенизировать текст и вернуть список токенов
+        Tokenize text and return list of tokens
         """
         tokens = self.llm.tokenize(text.encode("utf-8"))
         return tokens
