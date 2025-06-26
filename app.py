@@ -19,16 +19,17 @@ def load_gguf_models():
 
 @st.cache_resource(show_spinner="🔄 Loading model…")
 def get_model(path: str):
-    return QwenModel(model_path=path, enable_thinking=True)
+    return QwenModel(
+        model_path=path, enable_thinking=True, enable_few_shot_examples=False
+    )
 
 
 def summarize_text(text: str, model_name: str, llm: QwenModel | None):
     """
     Stream summarize text using GGUF model or fallback to simple summarization
     """
-    prompt = SYSTEM_PROMPT.format(think_mode="/no_think", few_shot_examples="")
     if model_name != "Simple Fallback" and llm:
-        return llm.run(prompt, text, stream=True)
+        return llm.run(SYSTEM_PROMPT, text, stream=True)
     else:
         # Simple fallback summarization
         words = text.split()
