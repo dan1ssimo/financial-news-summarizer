@@ -2,7 +2,7 @@
 
 ## About the project
 A small Streamlit application for obtaining summaries of financial news.
-Under the hood, it uses llama-cpp-python with local GGUF models (Qwen by default), and when they are missing, a simple fallback algorithm is activated.
+Under the hood, it uses llama-cpp-python with local GGUF models (for now only [Qwen3-1.7B-GGUF](https://huggingface.co/Qwen/Qwen3-1.7B-GGUF) supported), and when they are missing, a simple fallback algorithm is activated.
 
 ## Web UI (Streamlit)
 ![Financial News Summarizer Interface](docs/demo.png)
@@ -17,24 +17,29 @@ Under the hood, it uses llama-cpp-python with local GGUF models (Qwen by default
 - Docker image with complete environment (Ubuntu 22.04 + Python 3.11).
 
 ## Quick start
-### Docker Compose (recommended)
-```bash
+### Preparation
+```
+git clone <repo_id>
+cd financial-news-summarizer
 mkdir -p data/models            # directory for models
 # place *.gguf files inside data/models/
-docker-compose up -d            # build and run
+```
+### Docker Compose (recommended)
+```bash
+docker-compose up -d --build
 ```
 The application will be available at `http://localhost:8501`.
 
-P.S: Inference on streamlit takes some time even with streaming (about 2-3 minutes). Haven't had time to fix this yet. If you want quick results, go into the container and run scripts/summarize_news.py
+P.S: Inference on streamlit takes some time even with streaming (about 2-3 minutes). Haven't had time to fix this yet. If you want quick results, go into the container (`docker exec -ti <container_id> bash`) and run `python3 scripts/summarize_news.py` (you can change the article you want to process)
 
 ### Manual Docker run (CPU version only for now)
 ```bash
 docker build -t news-summarizer .
-docker run -d -p 8501:8501 \
-  -v /path/to/gguf:/app/data/models \
-  news-summarizer
-
+docker run -d -p 8501:8501 news-summarizer
 docker exec -ti <container_id> bash
+
+streamlit run app.py
+# or
 python3 scripts/summarize_news.py
 ```
 
@@ -43,6 +48,8 @@ python3 scripts/summarize_news.py
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 streamlit run app.py
+# or
+python3 scripts/summarize_news.py
 ```
 
 ## Repository structure

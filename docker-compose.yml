@@ -6,8 +6,6 @@ services:
     stdin_open: true
     ports:
       - "8501:8501"
-    volumes:
-      - ${PWD}:/app # for debug
     environment:
       - STREAMLIT_SERVER_PORT=8501
       - STREAMLIT_SERVER_ADDRESS=0.0.0.0
